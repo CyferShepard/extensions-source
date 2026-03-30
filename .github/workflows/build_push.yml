@@ -144,5 +144,5 @@ jobs:
           DELETE: ${{ needs.prepare.outputs.delete }}
         run: |
           cd repo
-          python ../custom/.github/scripts/merge-repo.py "$DELETE"
-          ../custom/.github/scripts/commit-repo.sh
+          python ../main/.github/scripts/merge-repo.py "$DELETE"
+          ../main/.github/scripts/commit-repo.sh
