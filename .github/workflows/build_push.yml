@@ -3,7 +3,6 @@ name: CI
 on:
   push:
     branches:
-      - main
       - custom
     paths:
       - "**"
@@ -118,13 +117,13 @@ jobs:
       - name: Checkout main branch
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: main
-          path: main
+          ref: custom
+          path: custom
           persist-credentials: false
 
       - name: Create repo artifacts
         run: |
-          cd main
+          cd custom
           python ./.github/scripts/move-built-apks.py
           INSPECTOR_LINK="$(curl -s "https://api.github.com/repos/cyfershepard/extensions-inspector/releases/latest" | jq -r '.assets[0].browser_download_url')"
           curl -L "$INSPECTOR_LINK" -o ./Inspector.jar
@@ -145,5 +144,5 @@ jobs:
           DELETE: ${{ needs.prepare.outputs.delete }}
         run: |
           cd repo
-          python ../main/.github/scripts/merge-repo.py "$DELETE"
-          ../main/.github/scripts/commit-repo.sh
+          python ../custom/.github/scripts/merge-repo.py "$DELETE"
+          ../custom/.github/scripts/commit-repo.sh
