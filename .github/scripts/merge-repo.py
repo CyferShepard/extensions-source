@@ -5,7 +5,34 @@ from pathlib import Path
 import shutil
 
 REMOTE_REPO: Path = Path.cwd()
-LOCAL_REPO: Path = REMOTE_REPO.parent.joinpath("main/repo")
+
+# Determine where the locally-built repo artifacts live. In CI we create
+# the artifacts in different folders depending on the checkout path (for
+# example `custom/repo` when checked out to `custom`). Try several
+# reasonable locations and pick the first one that contains an `apk`
+# directory.
+CANDIDATE_LOCAL_PATHS = [
+    REMOTE_REPO.parent.joinpath("custom/repo"),
+    REMOTE_REPO.parent.joinpath("main/repo"),
+    REMOTE_REPO.parent.joinpath("repo"),
+]
+
+LOCAL_REPO: Path | None = None
+for candidate in CANDIDATE_LOCAL_PATHS:
+    if candidate.joinpath("apk").exists():
+        LOCAL_REPO = candidate
+        break
+
+if LOCAL_REPO is None:
+    # Provide a clear, actionable error to help CI debugging.
+    available = [p for p in REMOTE_REPO.parent.iterdir() if p.is_dir()]
+    raise SystemExit(
+        "Could not find local built repo artifacts. Searched: {}. "
+        "Directories at parent: {}".format(
+            ", ".join(str(p) for p in CANDIDATE_LOCAL_PATHS),
+            ", ".join(str(p.name) for p in available),
+        )
+    )
 
 to_delete: list[str] = json.loads(sys.argv[1])
 
