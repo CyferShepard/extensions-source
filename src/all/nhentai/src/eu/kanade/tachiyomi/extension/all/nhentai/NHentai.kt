@@ -24,6 +24,8 @@ import keiyoushi.lib.randomua.addRandomUAPreference
 import keiyoushi.lib.randomua.setRandomUserAgent
 import keiyoushi.utils.getPreferencesLazy
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -68,8 +70,7 @@ open class NHentai(
     }
 
     private val shortenTitleRegex = Regex("""(\[[^]]*]|[({][^)}]*[)}])""")
-    private val dataRegex = Regex("""JSON\.parse\(\s*"(.*)"\s*\)""")
-    private val hentaiSelector = "script:containsData(JSON.parse):not(:containsData(media_server)):not(:containsData(avatar_url))"
+    private val hentaiSelector = "script[type=application/json][data-sveltekit-fetched]:containsData(media_id):containsData(num_pages)"
     private fun String.shortenTitle() = this.replace(shortenTitleRegex, "").trim()
 
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
@@ -210,7 +211,7 @@ open class NHentai(
         val cdnUrl = document.getCdnUrls(thumbnail = true).random()
         return SManga.create().apply {
             title = if (displayFullTitle) data.title.english ?: data.title.japanese ?: data.title.pretty!! else data.title.pretty ?: (data.title.english ?: data.title.japanese)!!.shortenTitle()
-            thumbnail_url = "https://$cdnUrl/galleries/${data.media_id}/1t.${data.images.pages[0].extension}"
+            thumbnail_url = "https://$cdnUrl/${data.pages[0].thumbnail}"
             status = SManga.COMPLETED
             artist = getArtists(data)
             author = getGroups(data) ?: getArtists(data)
@@ -219,7 +220,7 @@ open class NHentai(
                 .plus("${data.title.english ?: data.title.japanese ?: data.title.pretty ?: ""}\n")
                 .plus(data.title.japanese ?: "")
                 .plus("\n\n")
-                .plus("Pages: ${data.images.pages.size}\n")
+                .plus("Pages: ${data.num_pages}\n")
                 .plus("Favorited by: ${data.num_favorites}\n")
                 .plus(getTagDescription(data))
             genre = getTags(data)
@@ -251,31 +252,40 @@ open class NHentai(
         val data = document.getHentaiData()
         val cdnUrls = document.getCdnUrls(thumbnail = false)
 
-        return data.images.pages.mapIndexed { i, image ->
+        return data.pages.mapIndexed { i, image ->
             Page(
                 index = i,
-                imageUrl = "https://${cdnUrls.random()}/galleries/${data.media_id}/${i + 1}.${image.extension}",
+                imageUrl = "https://${cdnUrls.random()}/${image.path}",
             )
         }
     }
 
     private fun Document.getHentaiData(): Hentai {
         val script = selectFirst(hentaiSelector)!!.data()
-        return dataRegex.find(script)!!.groupValues[1].parseAs()
+        val body = json.parseToJsonElement(script)
+            .jsonObject["body"]!!
+            .jsonPrimitive.content
+        return json.decodeFromString(body)
     }
 
     private fun Document.getCdnUrls(thumbnail: Boolean): List<String> {
-        val regex = Regex(
-            if (thumbnail) {
-                """thumb_cdn_urls:\s*(\[.*])"""
-            } else {
-                """image_cdn_urls:\s*(\[.*])"""
-            },
-        )
-        val html = body().html()
-        val cdnJson = regex.find(html)!!.groupValues[1]
+        val tcdns = listOf("t1.nhentai.net", "t2.nhentai.net", "t3.nhentai.net", "t4.nhentai.net")
+        if (thumbnail) return tcdns;
 
-        return cdnJson.parseAs<List<String>>()
+        val cdns = listOf("i.nhentai.net", "i2.nhentai.net", "i3.nhentai.net", "i4.nhentai.net")
+        return cdns;
+        // return cdns;
+        // val regex = Regex(
+        //     if (thumbnail) {
+        //         """thumb_cdn_urls:\s*(\[.*])"""
+        //     } else {
+        //         """image_cdn_urls:\s*(\[.*])"""
+        //     },
+        // )
+        // val html = body().html()
+        // val cdnJson = regex.find(html)!!.groupValues[1]
+
+        // return cdnJson.parseAs<List<String>>()
     }
 
     override fun getFilterList(): FilterList = FilterList(
