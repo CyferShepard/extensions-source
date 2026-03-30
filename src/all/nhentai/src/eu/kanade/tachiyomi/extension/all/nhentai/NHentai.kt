@@ -270,10 +270,10 @@ open class NHentai(
 
     private fun Document.getCdnUrls(thumbnail: Boolean): List<String> {
         val tcdns = listOf("t1.nhentai.net", "t2.nhentai.net", "t3.nhentai.net", "t4.nhentai.net")
-        if (thumbnail) return tcdns;
+        if (thumbnail) return tcdns
 
         val cdns = listOf("i.nhentai.net", "i2.nhentai.net", "i3.nhentai.net", "i4.nhentai.net")
-        return cdns;
+        return cdns
         // return cdns;
         // val regex = Regex(
         //     if (thumbnail) {
