@@ -4,12 +4,13 @@ on:
   push:
     branches:
       - main
+      - custom
     paths:
-      - '**'
-      - '!**.md'
-      - '!.github/**'
-      - '.github/scripts/**'
-      - '.github/workflows/build_push.yml'
+      - "**"
+      - "!**.md"
+      - "!.github/**"
+      - ".github/scripts/**"
+      - ".github/workflows/build_push.yml"
   workflow_dispatch:
 
 permissions: {}
